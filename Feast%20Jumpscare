@@ -1,0 +1,236 @@
+-- ==========================================================
+-- REBOUND JUMPSCARE EXECUTOR SCRIPT
+-- Tự tạo GUI, Sound, Static Background & Effect đầy đủ
+-- ==========================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 1. DỌN DẸP GUI CŨ NẾU ĐÃ TỒN TẠI
+local existingGui = playerGui:FindFirstChild("ReboundJumpscareGui")
+if existingGui then
+	existingGui:Destroy()
+end
+
+-- 2. TẠO SCREEN GUI BAN ĐẦU
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ReboundJumpscareGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999999
+screenGui.Parent = playerGui
+
+-- Background Đen
+local bg = Instance.new("Frame")
+bg.Name = "Background"
+bg.Size = UDim2.fromScale(1, 1)
+bg.Position = UDim2.fromScale(0, 0)
+bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+bg.BackgroundTransparency = 0
+bg.BorderSizePixel = 0
+bg.Parent = screenGui
+
+-- Overlay Static (Nhiễu nền đặc trưng của Rebound)
+local staticOverlay = Instance.new("ImageLabel")
+staticOverlay.Name = "StaticOverlay"
+staticOverlay.Size = UDim2.fromScale(1, 1)
+staticOverlay.Position = UDim2.fromScale(0, 0)
+staticOverlay.BackgroundTransparency = 0
+staticOverlay.ImageTransparency = 0.8
+staticOverlay.ScaleType = Enum.ScaleType.Stretch
+staticOverlay.ZIndex = 2
+staticOverlay.Parent = screenGui
+
+-- Rebound Face (Khuôn mặt Jumpscare)
+local faceImage = Instance.new("ImageLabel")
+faceImage.Name = "ReboundFace"
+faceImage.Size = UDim2.new(0, 250, 0, 250)
+faceImage.Position = UDim2.fromScale(0.5, 0.5)
+faceImage.AnchorPoint = Vector2.new(0.5, 0.5)
+faceImage.BackgroundTransparency = 1
+faceImage.Image = "http://www.roblox.com/asset/?id=11703907763" -- ID mặt Rebound / Jumpscare
+faceImage.ImageColor3 = Color3.fromRGB(255, 255, 255)
+faceImage.ScaleType = Enum.ScaleType.Stretch
+faceImage.ZIndex = 3
+faceImage.Parent = screenGui
+
+-- Sound Jumpscare Phase 1
+local jsSound = Instance.new("Sound")
+jsSound.Name = "ReboundJumpscareSound"
+jsSound.SoundId = "rbxassetid://109582246349306"
+jsSound.Volume = 10
+jsSound.Parent = workspace
+
+-- Sound Jumpscare Phase 2 (Climax)
+local jsSound5 = Instance.new("Sound")
+jsSound5.Name = "ReboundJumpscareSound5"
+jsSound5.SoundId = "rbxassetid://109582246349306"
+jsSound5.Volume = 10
+jsSound5.PlaybackSpeed = Random.new():NextNumber(0.3, 0.9)
+jsSound5.Parent = workspace
+
+-- 3. DỮ LIỆU CẤU HÌNH (ASSETS & COLORS)
+local colors = {
+	Color3.fromRGB(146, 0, 0),
+	Color3.fromRGB(214, 0, 0),
+	Color3.fromRGB(126, 0, 0),
+	Color3.fromRGB(197, 0, 0),
+	Color3.fromRGB(203, 0, 0),
+	Color3.fromRGB(160, 0, 5),
+	Color3.fromRGB(255, 0, 0)
+}
+
+local staticImages = {
+	"rbxassetid://236777652",
+	"rbxassetid://236543215"
+}
+
+local staticRotations = {0, -180, 180}
+
+-- Hàm bổ trợ phát sound an toàn
+local function playSoundSafe(soundObj, timePos, speed, volume)
+	if not soundObj or not soundObj.Parent then return end
+	soundObj:Stop()
+	soundObj.TimePosition = timePos or 0
+	soundObj.PlaybackSpeed = speed or 1
+	soundObj.Volume = volume or 10
+	soundObj:Play()
+end
+
+-- Hàm bổ trợ lấy giá trị ngẫu nhiên không trùng lập với giá trị cũ
+local function getRandomDifferent(tab, current)
+	local picked = tab[math.random(1, #tab)]
+	if picked == current then
+		task.wait()
+		return getRandomDifferent(tab, current)
+	end
+	return picked
+end
+
+-- 4. BẮT ĐẦU CHẠY HIỆU ỨNG JUMPSCARE
+local isJumpscaring = true
+
+-- Giảm âm thanh game chính
+pcall(function()
+	game.SoundService.Main.Volume = 0
+end)
+
+-- Phát âm thanh khởi đầu
+playSoundSafe(jsSound, 0, math.random(75, 125) / 100, 10)
+
+-- Vòng lặp Phase 1: Giật nhiễu Static, nháy màu Cyan/Blue & Biến dạng mặt
+task.spawn(function()
+	local lastRot = staticOverlay.Rotation
+	local lastImg = staticOverlay.Image
+
+	while isJumpscaring and screenGui.Parent do
+		task.wait(0.066666666666666666)
+
+		-- THUẬT TOÁN TÍNH GÓC XOAY NGẪU NHIÊN (-180 đến 180)
+		local currentRot = faceImage.Rotation
+		local v2
+
+		if math.random(1, 2) == 1 then
+			v2 = -currentRot
+		else
+			v2 = currentRot + math.random(-360, 360)
+		end
+
+		local v3 = v2 + math.random(-360, 360)
+
+		if v3 > 180 then
+			v3 = 180
+		elseif v3 < -180 then
+			v3 = -180
+		end
+
+		-- Nháy màu nền Static & Đổi màu mặt
+		staticOverlay.BackgroundColor3 = colors[math.random(1, #colors)]
+		faceImage.ImageColor3 = colors[math.random(1, #colors)]
+
+		-- Đổi góc xoay & Texture Static ngẫu nhiên
+		lastRot = getRandomDifferent(staticRotations, lastRot)
+		lastImg = getRandomDifferent(staticImages, lastImg)
+
+		staticOverlay.Rotation = lastRot
+		staticOverlay.Image = lastImg
+
+		-- HIỆU ỨNG TWEEN CO GIÃN SIZE (Phần 1)
+		local v10 = TweenInfo.new(0.066666666666666666)
+		local v11 = math.random(150, 450)
+		local v12 = math.random(75, 150)
+		local v13 = {Size = UDim2.new(0, v11, 0, v12)}
+		TweenService:Create(faceImage, v10, v13):Play()
+
+		-- HIỆU ỨNG TWEEN CO GIÃN SIZE (Phần 2 - Delay)
+		task.delay(0.03333333333333333, function()
+			if faceImage and faceImage.Parent and isJumpscaring then
+				local v14 = TweenInfo.new(0.05333333333333333)
+				local v15 = math.random(225, 250)
+				local v16 = math.random(150, 450)
+				local v17 = {Size = UDim2.new(0, v15, 0, v16)}
+				TweenService:Create(faceImage, v14, v17):Play()
+			end
+		end)
+
+		-- HIỆU ỨNG TWEEN POSITION & ROTATION (ĐÃ ÁP DỤNG ROTATION = -v3)
+		local v19 = TweenInfo.new(0.05333333333333333, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local v20 = math.random(150, 800) / 1000
+		local v21 = math.random(150, 800) / 1000
+		local v22 = {
+			Position = UDim2.new(v20, 0, v21, 0),
+			Rotation = -v3 -- Sử dụng góc xoay giật ngẫu nhiên -v3
+		}
+		TweenService:Create(faceImage, v19, v22):Play()
+
+		-- Phát lại Sound ngẫu nhiên giật đoạn
+		playSoundSafe(jsSound, 0.25 + math.random() / 10, math.random(50, 125) / 100, 10)
+	end
+end)
+
+-- Phase 2: Đạt đỉnh (Climax) sau 2.5 giây -> Mặt chuyển sang ĐỎ + Phóng to
+task.delay(2.5, function()
+	if not screenGui.Parent then return end
+
+	isJumpscaring = false -- Dừng vòng lặp nháy giật Phase 1
+	if jsSound then jsSound:Destroy() end
+
+	task.wait(0.1)
+	jsSound5:Play()
+
+	-- Tween phóng to mặt Rebound, đưa về giữa, đổi màu ĐỎ
+	local climaxTween = TweenService:Create(faceImage, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Rotation = math.random(-25, 25),
+		ImageColor3 = Color3.fromRGB(255, 0, 0)
+	})
+	climaxTween:Play()
+
+	-- Phase 3: Mờ dần (Fade Out) & Dọn dẹp
+	task.delay(1, function()
+		-- Tween mờ mặt Rebound trong 2s
+		TweenService:Create(faceImage, TweenInfo.new(2), {ImageTransparency = 1}):Play()
+
+		-- Tween mờ Background & Static trong 1s
+		TweenService:Create(bg, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+		TweenService:Create(staticOverlay, TweenInfo.new(1), {
+			BackgroundTransparency = 1,
+			ImageTransparency = 1
+		}):Play()
+
+		-- Khôi phục âm thanh game
+		pcall(function()
+			game.SoundService.Main.Volume = 0.5
+		end)
+
+		-- Tự động xóa GUI & Sounds
+		task.delay(2, function()
+			if jsSound5 then jsSound5:Destroy() end
+			if screenGui then screenGui:Destroy() end
+		end)
+	end)
+end)
